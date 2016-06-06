@@ -1,5 +1,6 @@
 import { cypher } from '../infra/neo4j'
 import betterGroup, { shortIdSchema } from '../utils/groupUtils'
+import calculateRanking from '../worker/calculate-ranking'
 
 exports.register = function (server, options, next) {
 
@@ -41,8 +42,8 @@ exports.register = function (server, options, next) {
                 },
                 handler(req, reply) {
                     cypher(`
-                        MATCH (:User { id: {userId} })-[:IS_MEMBER_OF_GROUP]->(g:Group { id: {groupId} })
-                        MATCH    (u:User)-[m:IS_MEMBER_OF_GROUP {isActive: true}]->(g)
+                        MATCH   (:User { id: { userId} })-[:IS_MEMBER_OF_GROUP]->(g:Group { id: { groupId } })
+                        MATCH   (u:User)-[m:IS_MEMBER_OF_GROUP { isActive: true }]->(g)
                         RETURN   u.id        AS id, 
                                  u.name      AS name, 
                                  u.avatarUrl AS avatarUrl, 
@@ -58,7 +59,19 @@ exports.register = function (server, options, next) {
                 },
             },
         },
+        {
+            method: 'GET',
+            path: '/api/ranking/calculate',
+            config: {
+                handler(req, reply) {
+                    calculateRanking()
+                        .then(reply)
+                        .catch(reply)
+                },
+            },
+        },
     ])
+
     next()
 }
 

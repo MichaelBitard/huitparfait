@@ -1,6 +1,5 @@
 import Config from './infra/config'
 import fs from 'fs'
-import url from 'url'
 
 const JWT_PUBLIC_KEY_PATH = Config.get('jwt.publicKeyPath')
 const JWT_PUBLIC_KEY = fs.readFileSync(JWT_PUBLIC_KEY_PATH, 'utf8')

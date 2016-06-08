@@ -139,7 +139,8 @@
 </template>
 
 <script type="text/babel">
-    import * as WebApi from '../WebApi'
+    import store from '../state/configureStore'
+    import { fetchPredictions, savePrediction } from '../state/actions/predictions'
     import _ from 'lodash'
     import moment from 'moment'
 
@@ -148,17 +149,21 @@
     export default {
         data() {
             return {
+                predictions: this.$select('predictions'),
                 gamesByDay: undefined,
             }
         },
-        ready() {
-            WebApi.fetchPredictions().then((games) => {
-                this.gamesByDay = _(games)
-                        .groupBy((game) => {
-                            return moment(game.startsAt).startOf('day')
-                        })
-                        .mapValues((gamesForDay) => {
-                            return _(gamesForDay)
+        route: {
+            data() {
+                store.dispatch(fetchPredictions())
+                    .then(predictions => {
+                        console.log(predictions.predictions);
+                        this.gamesByDay = _(predictions.predictions)
+                            .groupBy((game) => {
+                                return moment(game.startsAt).startOf('day')
+                            })
+                            .mapValues((gamesForDay) => {
+                                return _(gamesForDay)
                                     .map((gameForDay) => {
 
                                         // Initialize amount of risked points to the maximum
@@ -173,14 +178,15 @@
                                     })
                                     .value()
 
-                        })
-                        .value()
-            })
+                            })
+                            .value()
+                    })
+            },
         },
         methods: {
             hasScore: function (game) {
                 return game.value.goalsTeamA != null &&
-                        game.value.goalsTeamB != null
+                    game.value.goalsTeamB != null
             },
             enablePrediction: function (game) {
                 game.state.notSaved = true
@@ -194,15 +200,15 @@
             predictionIsValid: function (game) {
                 // Wrong value types in fields
                 if (isNaN(game.value.predictionRiskAmount) || game.value.predictionRiskAmount <= 0 ||
-                        isNaN(game.value.predictionScoreTeamA) || game.value.predictionScoreTeamA < 0 ||
-                        isNaN(game.value.predictionScoreTeamB) || game.value.predictionScoreTeamB < 0
+                    isNaN(game.value.predictionScoreTeamA) || game.value.predictionScoreTeamA < 0 ||
+                    isNaN(game.value.predictionScoreTeamB) || game.value.predictionScoreTeamB < 0
                 ) {
                     return false
                 }
 
                 // No risk amount selected even though an answer to the risk is provided
                 if (game.value.predictionRiskAnswer != null &&
-                        game.value.predictionRiskAmount <= 0) {
+                    game.value.predictionRiskAmount <= 0) {
                     return false
                 }
 
@@ -221,13 +227,13 @@
                     predictionRiskAmount: game.value.predictionRiskAnswer != null ? game.value.predictionRiskAmount : 0,
                 }
 
-                WebApi.savePrediction(prediction)
-                        .then(() => {
-                            this.disablePrediction(game)
-                        })
-                        .catch(() => {
-                            this.enablePrediction(game)
-                        })
+                store.dispatch(savePrediction(prediction))
+                    .then(() => {
+                        this.disablePrediction(game)
+                    })
+                    .catch(() => {
+                        this.enablePrediction(game)
+                    })
             },
         },
         filters: {
